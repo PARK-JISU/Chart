@@ -22,12 +22,13 @@ public class Document : MonoBehaviour
     private Text ComparisonDocumentTxt;
     [SerializeField]
     private RectTransform ChartArea;
-    //아직 사용안함
+
     //캔들
     private List<CandleOBJ> candles = new List<CandleOBJ>();
     //라인
     private LineRenderer CandleLine;
 
+    //아직 사용안함
     //볼린저 밴드 라인
     //public LineRenderer upperBandLine;
     //public LineRenderer lowerBandLine;
