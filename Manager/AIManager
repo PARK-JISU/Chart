@@ -10,13 +10,14 @@ public class AIManager : Singletone<AIManager>
     public void Init()
     {
         //네트워크 체크랑 잡다한거
+        //일단 기능만 체크 용으로 만듦
         if(NetManager.Instance.CheckConnectInternet())
         {
-
+            Debug.Log("네트워크 연결 확인");
         }
         else
         {
-
+            Debug.Log("네트워크 연결 안됨");
         }
     }
 
