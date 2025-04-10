@@ -1,0 +1,47 @@
+public enum TimeType
+{
+    Default = -1,
+    Month = 0,
+    Week = 1,
+    Day = 2,
+    Min = 3,
+}
+
+public enum DefaultSetting
+{
+    Default_Drop = 0,
+
+    Default_Unit = 60,
+    Default_Count = 100,
+}
+
+public enum MarketType
+{
+    NONE = -1,
+    KRW = 0,
+    USDT = 1,
+    BTC = 2,
+}
+
+public enum MinValiation
+{
+    TYPE1 = 1,
+    TYPE15 = 15,
+    TYPE30 = 30,
+    TYPE60 = 60,
+    TYPE240 = 240,
+}
+
+public enum OBJType
+{
+    CANDLE,
+    LINE,
+}
+
+public enum PanelType
+{
+    Prediction,
+    Comparison,
+}
+
+
