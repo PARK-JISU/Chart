@@ -1,0 +1,20 @@
+public class Const
+{
+    public const string market = "market";
+    public const string candle_date_time_utc = "candle_date_time_utc";
+    public const string candle_date_time_kst = "candle_date_time_kst";
+    public const string opening_price = "opening_price";
+    public const string high_price = "high_price";
+    public const string low_price = "low_price";
+    public const string trade_price = "trade_price";
+    public const string timestamp = "timestamp";
+    public const string candle_acc_trade_price = "candle_acc_trade_price";
+    public const string candle_acc_trade_volume = "candle_acc_trade_volume";
+    public const string unit = "unit";
+
+
+    //코인 데이터
+    public const string market_name = "market";
+    public const string korean_name = "korean_name";
+    public const string english_name = "english_name";
+}
