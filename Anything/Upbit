@@ -1,0 +1,250 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using Cysharp.Threading.Tasks;
+
+public class Upbit : MonoBehaviour
+{
+    [Header("BUTTON")]
+    [SerializeField]
+    private Button DefineBtn;
+    [SerializeField]
+    private Button MarketCheckBtn;
+
+    [Header("DROP DOWN BOX")]
+    [SerializeField]
+    private Dropdown MarketDropDown;
+    [SerializeField]
+    private Dropdown CoinDropDown;
+    [SerializeField]
+    private Dropdown TimeDropDown;
+    [SerializeField]
+    private Dropdown UnitDropDown;
+    [SerializeField]
+    private Dropdown CountDropDown;
+
+    [SerializeField]
+    private Document DocumentItem;
+
+    private PanelType curPanel = PanelType.Prediction;
+    private void Awake()
+    {
+        Init();
+    }
+
+    public void Init()
+    {
+        MarketDropDown.options.Clear();
+        TimeDropDown.options.Clear();
+        CoinDropDown.options.Clear();
+        UnitDropDown.options.Clear();
+        CountDropDown.options.Clear();
+
+        #region Prediction Panel
+        for (MarketType i = MarketType.KRW; i <= MarketType.USDT; i++)
+            MarketDropDown.options.Add(new Dropdown.OptionData(i.ToString()));
+
+        //Time 
+        for (TimeType i = TimeType.Month; i <= TimeType.Min; i++)
+            TimeDropDown.options.Add(new Dropdown.OptionData(i.ToString()));
+      
+        TimeDropDown.value = (int)DefaultSetting.Default_Drop;
+
+        //Coins
+        Dictionary<MarketType, List<CoinData>> _coinDic = MarketManager.Instance.GetcoinDic();
+        MarketType _market = MarketManager.Instance.Get_MargetType();
+        for (int i= 0; i < _coinDic[_market].Count; i++)
+        {
+            CoinDropDown.options.Add(new Dropdown.OptionData(_coinDic[_market][i].Kor_Name));
+        }
+        CoinDropDown.value = (int)DefaultSetting.Default_Drop;
+        MarketManager.Instance.Set_CoinType(_coinDic[_market][(int)DefaultSetting.Default_Drop]);
+
+        //Unit
+        UnitDropDown.options.Add(new Dropdown.OptionData("1"));
+        UnitDropDown.options.Add(new Dropdown.OptionData("15"));
+        UnitDropDown.options.Add(new Dropdown.OptionData("30"));
+        UnitDropDown.options.Add(new Dropdown.OptionData("60"));
+        UnitDropDown.options.Add(new Dropdown.OptionData("240"));
+        UnitDropDown.value = 3;
+        MarketManager.Instance.Set_Unit((int)DefaultSetting.Default_Unit);
+
+        //Count
+        CountDropDown.options.Add(new Dropdown.OptionData("100"));
+        CountDropDown.options.Add(new Dropdown.OptionData("200"));
+        CountDropDown.value = (int)DefaultSetting.Default_Drop;
+        MarketManager.Instance.Set_Count((int)DefaultSetting.Default_Count);
+        #endregion
+        //기능 부여
+        #region Prediction Panel
+        MarketDropDown.onValueChanged.AddListener(delegate { MarketDropdownValueChanged(MarketDropDown); });
+        TimeDropDown.onValueChanged.AddListener(delegate { TimeDropdownValueChanged(TimeDropDown); });
+        CoinDropDown.onValueChanged.AddListener(delegate { CoinDropdownValueChanged(CoinDropDown); });
+        UnitDropDown.onValueChanged.AddListener(delegate { UnitDropdownValueChanged(UnitDropDown); });
+        CountDropDown.onValueChanged.AddListener(delegate { CountDropValueChanged(CountDropDown); });
+
+        DefineBtn.onClick.AddListener(OnClickDefineBtn);
+        MarketCheckBtn.onClick.AddListener(OnClickCheckMarketBtn);
+        #endregion
+        Refresh();
+    }
+    private void Refresh()
+    {
+
+        DocumentItem.VaccumeDocument();
+        DocumentItem.releaseChart();
+
+        UnitDropDown.gameObject.SetActive(MarketManager.Instance.Get_TimeType() == TimeType.Min ? true : false);
+        CountDropDown.gameObject.SetActive(MarketManager.Instance.Get_TimeType() == TimeType.Min ? true : false);
+
+        MarketManager.Instance.CalPerTypeCandles();
+
+    }
+
+    #region DropDownEvent
+    void MarketDropdownValueChanged(Dropdown _change)
+    {
+        MarketManager.Instance.Set_MargetType((MarketType)_change.value);
+        CoinDropDown.options.Clear();
+
+        Dictionary<MarketType, List<CoinData>> _coinDic = MarketManager.Instance.GetcoinDic();
+        MarketType _type = MarketManager.Instance.Get_MargetType();
+        for (int i = 0; i < _coinDic[_type].Count; i++)
+            CoinDropDown.options.Add(new Dropdown.OptionData(_coinDic[_type][i].Kor_Name));
+        CoinDropDown.value = 0;
+
+        Refresh();
+    }
+
+    void TimeDropdownValueChanged(Dropdown _change)
+    {
+        MarketManager.Instance.Set_TimeType((TimeType)_change.value);
+        MarketManager.Instance.Refresh();
+        Refresh();
+    }
+    void CoinDropdownValueChanged(Dropdown _change)
+    {
+        MarketManager.Instance.Set_CoinType(MarketManager.Instance.GetcoinDic()[MarketManager.Instance.Get_MargetType()][_change.value]);
+        MarketManager.Instance.Refresh();
+        Refresh();
+    }
+    void UnitDropdownValueChanged(Dropdown _change)
+    {
+        MarketManager.Instance.Set_Unit(int.Parse(_change.options[_change.value].text));
+        MarketManager.Instance.Refresh();
+        Refresh();
+    }
+    void CountDropValueChanged(Dropdown _change)
+    {
+        MarketManager.Instance.Set_Count(int.Parse(_change.options[_change.value].text));
+        MarketManager.Instance.Refresh();
+        Refresh();
+    }
+
+
+    #endregion
+    #region OnClickEvent
+
+    public void OnClickDefineBtn()
+    {
+        DocumentItem.SetDocument($"{AIManager.Instance.GenerateTradingSignal()}");
+    }
+
+    public void OnClickCheckMarketBtn()
+    {
+        DocumentItem.SetChartAndDetail(MarketManager.Instance.GetCandleData());
+    }
+    #endregion
+}
+
+public class CandleData
+{
+    public string market;
+    public string candle_date_time_utc;
+    public string candle_date_time_kst;
+    public float opening_price;
+    public float high_price;
+    public float low_price;
+    public float trade_price;
+    public long timestamp;
+    public float candle_acc_trade_price;
+    public float candle_acc_trade_volume;
+    public int unit;
+
+    public CandleData()
+    {
+
+    }
+
+    public CandleData(string _data)
+    {
+        string[] _curData = _data.Split(new string[] { "," }, System.StringSplitOptions.None);
+        for(int i= 0; i < _curData.Length; i++)
+        {
+            string[] _keyValue = _curData[i].Split(new string[] { ":" }, System.StringSplitOptions.None);
+            switch (_keyValue[0])
+            {
+                case Const.market: market = _keyValue[1]; break;
+                case Const.candle_date_time_utc: candle_date_time_utc = _keyValue[1];break;
+                case Const.candle_date_time_kst: candle_date_time_kst = _keyValue[1]; break;
+                case Const.opening_price: opening_price = float.Parse(_keyValue[1]); break;
+                case Const.high_price: high_price = float.Parse(_keyValue[1]); break;
+                case Const.low_price: low_price = float.Parse(_keyValue[1]); break;
+                case Const.trade_price: trade_price = float.Parse(_keyValue[1]); break;
+                //case ConstString.timestamp: timestamp = long.Parse(_keyValue[1]); break;
+                case Const.candle_acc_trade_price: candle_acc_trade_price = float.Parse(_keyValue[1]); break;
+                case Const.candle_acc_trade_volume: candle_acc_trade_volume = float.Parse(_keyValue[1]); break;
+                case Const.unit: unit = int.Parse(_keyValue[1]); break;
+            }
+
+        }
+    }
+}
+
+public class CoinData
+{
+    public string Market_Name;
+    public string En_Name;
+    public string Kor_Name;
+
+    public MarketType market = MarketType.KRW;
+    public CoinData()
+    {
+
+    }
+
+    public CoinData(string _data)
+    {
+        string[] _curData = _data.Split(new string[] { "," }, System.StringSplitOptions.None);
+        for(int i= 0; i < _curData.Length; i++)
+        {
+            string[] _keyValue = _curData[i].Split(new string[] { ":" }, System.StringSplitOptions.None);
+            string _key =  _keyValue[0].Replace("\"","").Trim();
+            string _value = _keyValue[1].Replace("\"", "").Trim();
+
+            switch (_key)
+            {
+                case Const.market_name: Market_Name = _value;
+                    market = SetMargetType(Market_Name);
+                    break;
+                case Const.english_name: En_Name = _value; break;
+                case Const.korean_name: Kor_Name = _value; break;
+            }
+        }
+    }
+
+    public MarketType SetMargetType(string _name)
+    {
+        MarketType _type = MarketType.NONE;
+        string[] _data = _name.Split(new string[] { "-" }, System.StringSplitOptions.None);
+        switch (_data[0])
+        {
+            case "KRW": _type = MarketType.KRW; break;
+            case "BTC": _type = MarketType.BTC; break;
+            case "USDT": _type = MarketType.USDT;  break;
+        }
+        return _type;
+    }
+
+}
+
