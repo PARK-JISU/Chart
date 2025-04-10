@@ -1,0 +1,70 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Linq;
+using UnityEngine.Pool;
+
+public class ResourceManager : Singletone<ResourceManager>
+{
+    private IObjectPool<CandleOBJ> CandlePool;
+
+    private Dictionary<OBJType, GameObject> ResourceORI_DIc = new Dictionary<OBJType, GameObject>();
+
+
+    public void Init()
+    {
+        ResourceORI_DIc.Clear();
+
+        for(OBJType i= OBJType.CANDLE; i <=OBJType.LINE; i++)
+        {
+            if (ResourceORI_DIc.ContainsKey(i) == false)
+                ResourceORI_DIc[i] = null;
+            
+            string _path = string.Empty;
+
+            switch (i)
+            {
+                case OBJType.CANDLE:_path = "Prefab/Chart/CandleOBJ"; break;
+                case OBJType.LINE: _path = "Prefab/Chart/LineRender"; break;
+
+            }
+
+            ResourceORI_DIc[i] = Resources.Load<GameObject>(_path);
+        }
+
+        CandlePool = new ObjectPool<CandleOBJ>(CraeteCandle,OnGetCandle,OnReleaseCandle,OnDestroyCandle, maxSize:(int)DefaultSetting.Default_Count);
+    }
+    private CandleOBJ CraeteCandle()
+    {
+        CandleOBJ _candle = Instantiate(ResourceORI_DIc[OBJType.CANDLE],this.transform).GetComponent<CandleOBJ>();
+        _candle.SetManageOBJPool(CandlePool);
+        return _candle;
+    }
+
+    private void OnGetCandle(CandleOBJ _candle)
+    {
+        _candle.OnGetCandle();
+    }
+
+    private void OnReleaseCandle(CandleOBJ _candle)
+    {
+        _candle.OnReleaseCandle();
+    }
+
+    private void OnDestroyCandle(CandleOBJ _candle)
+    {
+        Destroy(_candle.gameObject);
+    }
+
+    public IObjectPool<CandleOBJ> GetCandlePool()
+    {
+        return CandlePool;
+    }
+
+    public GameObject GetObjectByType(OBJType _type)
+    {
+        if (ResourceORI_DIc.ContainsKey(_type))
+            return ResourceORI_DIc[_type];
+        return null;
+    }
+}
