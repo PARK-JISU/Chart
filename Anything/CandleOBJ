@@ -1,0 +1,36 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Pool;
+using UnityEngine.UI;
+
+public class CandleOBJ : MonoBehaviour
+{
+    private IObjectPool<CandleOBJ> OBJPool;
+    
+    public void SetManageOBJPool(IObjectPool<CandleOBJ> _pool)
+    {
+        OBJPool = _pool;
+    }
+
+    public void SetCandleByChart(CandleData _data,float _maxPrice,float _minPrice, float _chartHeight,int _x,bool _double)
+    {
+        RectTransform _tran = this.gameObject.GetComponent<RectTransform>();
+        float normalizedHigh = (_data.high_price - _minPrice) / (_maxPrice - _minPrice) * _chartHeight;
+        float normalizedLow = (_data.low_price - _minPrice) / (_maxPrice - _minPrice) * _chartHeight;
+        float candleHeight = normalizedHigh - normalizedLow;
+        float _xSize = _double ? 2.5f : 5f;
+        _tran.sizeDelta = new Vector2(_xSize, candleHeight);
+
+        float normalizedOpen = (_data.opening_price - _minPrice) / (_maxPrice - _minPrice) * _chartHeight;
+        float normalizedClose = (_data.trade_price - _minPrice) / (_maxPrice - _minPrice) * _chartHeight;
+        float candleY = (normalizedOpen + normalizedClose) / 2;
+        _tran.localPosition = new Vector3(_x * (_double ? 5:10), candleY, 0);
+
+        bool isBullish = _data.trade_price > _data.opening_price;
+        this.GetComponent<Image>().color = isBullish ? Color.red : Color.blue;
+    }
+
+    public void OnGetCandle() => gameObject.SetActive(true);
+    public void OnReleaseCandle() => gameObject.SetActive(false);
+}
