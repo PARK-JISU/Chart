@@ -22,6 +22,7 @@ public class Document : MonoBehaviour
     private Text ComparisonDocumentTxt;
     [SerializeField]
     private RectTransform ChartArea;
+    //아직 사용안함
     //캔들
     private List<CandleOBJ> candles = new List<CandleOBJ>();
     //라인
