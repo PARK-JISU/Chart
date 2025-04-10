@@ -1,0 +1,204 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Networking;
+using System.Linq;
+using System;
+using Cysharp.Threading.Tasks;
+
+public class MarketManager : Singletone<MarketManager>
+{
+    //코인 종류 정보
+    private Dictionary<MarketType, List<CoinData>> coinDic = new Dictionary<MarketType, List<CoinData>>();
+
+    private List<CandleData> curCandleData = new List<CandleData>();
+    private List<Tuple<double, double, double, double>> curTupleData = new List<Tuple<double, double, double, double>>();
+
+
+    public int UnitNum;
+    public int CountNum;
+
+    //코인 종류
+    private CoinData curCoin = new CoinData();
+    //시장 종류
+    private MarketType market = MarketType.KRW;
+    //시간 종류 
+    private TimeType timeType = TimeType.Month;
+    public  void Init()
+    {
+        coinDic.Clear();
+        curCandleData.Clear();
+        curTupleData.Clear();
+
+        if (NetManager.Instance.CheckConnectInternet())
+        {
+            GetMargetList().Forget();
+        }
+        else
+        {
+            //인터넷 연결 안됨
+            //따로 UI를 띄워주거나 아니면 예외 처리를 함
+        }
+    }
+    public void Refresh()
+    {
+        curCandleData.Clear();
+        curTupleData.Clear();
+
+        CountNum = timeType == TimeType.Min ? CountNum : (int)DefaultSetting.Default_Count;
+    }
+
+    public void CalPerTypeCandles()
+    {
+        GetPerTypeCandles().Forget();
+    }
+
+    public void Set_MargetType(MarketType _type)
+    {
+        market = _type;
+    }
+    public void Set_TimeType(TimeType _type)
+    {
+        timeType = _type;
+    }
+    public void Set_CoinType(CoinData _data)
+    {
+        curCoin = _data;
+    }
+    public void Set_Unit(int _unit)
+    {
+        UnitNum = _unit;
+    }
+    public void Set_Count(int _count)
+    {
+        CountNum = _count;
+    }
+    async UniTask GetMargetList()
+    {
+        string url = "https://api.upbit.com/v1/market/all";
+        UnityWebRequest request = UnityWebRequest.Get(url);
+
+        string[] market_Imformation;
+        await request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            if (request.downloadHandler.text.StartsWith("[{") && request.downloadHandler.text.EndsWith("}]"))
+            {
+                string _request = request.downloadHandler.text.Remove(0, 2);
+                _request = _request.Remove(_request.Length - 2, 2);
+                market_Imformation = _request.Split(new string[] { "},{" }, System.StringSplitOptions.None);
+                for (int i = 0; i < market_Imformation.Length; i++)
+                {
+                    CoinData _coin = new CoinData(market_Imformation[i]);
+                    if (coinDic.ContainsKey(_coin.market) == false)
+                        coinDic[_coin.market] = new List<CoinData>();
+                    if (coinDic[_coin.market].Contains(_coin) == false)
+                        coinDic[_coin.market].Add(_coin);
+                }
+            }
+        }
+        else
+        {
+            throw new ArgumentException(request.error);
+        }
+
+        await UniTask.Delay(1000);
+        
+    }
+
+    public async UniTask GetPerTypeCandles()
+    {
+        curCandleData.Clear();
+        curTupleData.Clear();
+
+        string url = GetAPIUrl();
+
+        if (string.IsNullOrEmpty(url))
+            return;
+      
+        UnityWebRequest request = UnityWebRequest.Get(url);
+
+        await request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string _data = request.downloadHandler.text.Replace("\"", "");
+
+            if (_data.StartsWith("[") && _data.EndsWith("]"))
+            {
+                _data = _data.Remove(0, 1);
+                _data = _data.Remove(_data.Length - 1, 1);
+
+                string[] _curData = _data.Split(new string[] { "},{" }, System.StringSplitOptions.None);
+
+                for (int i = 0; i < _curData.Length; i++)
+                {
+
+                    if (_curData[i].StartsWith("{"))
+                        _curData[i] = _curData[i].Remove(0, 1);
+
+                    if (_curData[i].EndsWith("}"))
+                        _curData[i] = _curData[i].Remove(_curData[i].Length - 1, 1);
+
+                    CandleData _curCandle = new CandleData(_curData[i]);
+                    curCandleData.Add(_curCandle);
+                    curTupleData.Add(new Tuple<double, double, double, double>(_curCandle.high_price, _curCandle.low_price, _curCandle.trade_price, _curCandle.candle_acc_trade_volume));
+                }
+
+                //데이터 정렬화 해줘야함
+            }
+        }
+        else
+        {
+            throw new ArgumentException(request.error);
+        }
+    }
+    public string GetAPIUrl()
+    {
+        string url = string.Empty;
+        switch (timeType)
+        {
+            case TimeType.Month: url = $"https://api.upbit.com/v1/candles/months?market={curCoin.Market_Name}&count={CountNum}"; break;
+            case TimeType.Week: url = $"https://api.upbit.com/v1/candles/weeks?market={curCoin.Market_Name}&count={CountNum}"; break;
+            case TimeType.Day: url = $"https://api.upbit.com/v1/candles/days?market={curCoin.Market_Name}&count={CountNum}"; break;
+            case TimeType.Min: url = $"https://api.upbit.com/v1/candles/minutes/{UnitNum}?market={curCoin.Market_Name}&count={CountNum}"; break;
+        }
+        return url;
+    }
+    public Dictionary<MarketType, List<CoinData>> GetcoinDic()
+    {
+        return coinDic;
+    }
+    public List<Tuple<double, double, double, double>> GetTupleData()
+    {
+        return curTupleData;
+    }
+    public List<CandleData> GetCandleData()
+    {
+        return curCandleData;
+    }
+    public MarketType Get_MargetType()
+    {
+        return market;
+    }
+    public TimeType Get_TimeType()
+    {
+        return timeType;
+    }
+    #region 아직 사용안하는 기능
+    public CoinData Get_CoinType()
+    {
+        return curCoin;
+    }
+    public int Get_Unit()
+    {
+        return UnitNum;
+    }
+    
+    public int Get_Count()
+    {
+        return CountNum;
+    }
+    #endregion
+}
