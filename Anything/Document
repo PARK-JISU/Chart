@@ -1,0 +1,114 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class Document : MonoBehaviour
+{
+    [SerializeField]
+    private Text DocumentTxt;
+    [SerializeField]
+    private Text HighPriceTxt;
+    [SerializeField]
+    private Text LowPriceTxt;
+    [SerializeField]
+    private Text BolingerBandTxt;
+    [SerializeField]
+    private Text BBWTxt;
+    [SerializeField]
+    private Text MFITxt;
+    [SerializeField]
+    private Text ComparisonDocumentTxt;
+    [SerializeField]
+    private RectTransform ChartArea;
+    //캔들
+    private List<CandleOBJ> candles = new List<CandleOBJ>();
+    //라인
+    private LineRenderer CandleLine;
+
+    //볼린저 밴드 라인
+    //public LineRenderer upperBandLine;
+    //public LineRenderer lowerBandLine;
+    public void VaccumeDocument()
+    {
+        if (!string.IsNullOrEmpty(DocumentTxt.text))
+            DocumentTxt.text = string.Empty;
+    }
+    public void SetDocument(string _document)//string,enum type으로 어떤 말을 띄울지 타입 선언
+    {
+        DocumentTxt.text = _document;
+    }
+    public void releaseChart()
+    {
+        for(int i= 0; i < candles.Count; i++)
+        {
+            ResourceManager.Instance.GetCandlePool().Release(candles[i]);
+        }
+        candles.Clear();
+    }
+    public void SetChartAndDetail(List<CandleData> _data)
+    {
+        releaseChart();
+
+        float maxPrice = _data.Max(c => c.high_price);
+        float minPrice = _data.Min(c => c.low_price);
+        float chartHeight = ChartArea.rect.height;
+
+        int _x = (int)(ChartArea.rect.width / _data.Count);
+        bool _double = _data.Count == 200 ? true : false;
+
+        for (int i=0; i < _data.Count; i++)
+        {
+            CandleOBJ _candle =  ResourceManager.Instance.GetCandlePool().Get();
+            if (candles.Contains(_candle) == false)
+                candles.Add(_candle);
+            if (_candle.transform.parent != ChartArea.transform)
+                _candle.transform.SetParent(ChartArea.transform);
+            _candle.SetCandleByChart(_data[i], maxPrice,minPrice,chartHeight,Mathf.Abs(i-_data.Count), _double);
+        }
+        #region 볼린저 밴드
+        //볼린저 밴드 라인
+        //if (upperBandLine == null)
+        //    upperBandLine = Instantiate(ResourceManager.Instance.GetObjectByType(OBJType.LINE), ChartArea).GetComponent<LineRenderer>();     
+        //if (lowerBandLine == null)
+        //    lowerBandLine = Instantiate(ResourceManager.Instance.GetObjectByType(OBJType.LINE), ChartArea).GetComponent<LineRenderer>();
+
+
+
+        //List<Vector3> upperPoints = new List<Vector3>();
+        //List<Vector3> lowerPoints = new List<Vector3>();
+
+        //for(int i= 0; i< _data.Count; i++)
+        //{
+        //    var (upperBand,lowerBand) = AIManager.Instance.CalculateBollingerBand(i);
+        //    Vector3 position = new Vector3(i, _data[i].trade_price, 0);
+
+        //    upperPoints.Add(new Vector3(i, upperBand, 0));
+        //    lowerPoints.Add(new Vector3(i, lowerBand, 0));
+        //}
+
+        //upperBandLine.positionCount = upperPoints.Count;
+        //upperBandLine.SetPositions(upperPoints.ToArray());
+        //lowerBandLine.positionCount = lowerPoints.Count;
+        //lowerBandLine.SetPositions(lowerPoints.ToArray());
+        #endregion
+        HighPriceTxt.text = maxPrice.ToString();
+        LowPriceTxt.text = minPrice.ToString();
+        string _bolInfo = AIManager.Instance.CalBollingerBands().ToString();
+        if(_bolInfo.StartsWith("(") && _bolInfo.EndsWith(")"))
+        {
+            _bolInfo = _bolInfo.Remove(0, 1);
+            _bolInfo = _bolInfo.Remove(_bolInfo.Length - 1, 1);
+        }
+        BolingerBandTxt.text = _bolInfo;
+
+        BBWTxt.text = AIManager.Instance.CalBollingerBandsWidth().ToString();
+        MFITxt.text = AIManager.Instance.CalMFI(MarketManager.Instance.GetTupleData()).ToString();
+        float _calChangePer = AIManager.Instance.CalChangePercentByStandard();
+        string _color = _calChangePer > 0 ? "red" : "blue";
+        ComparisonDocumentTxt.text = $"전 캔들 대비<color={_color}>{_calChangePer}</color>%";
+    }
+
+ 
+}
