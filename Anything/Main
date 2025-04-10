@@ -1,0 +1,115 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Cysharp.Threading.Tasks;
+
+public class Main : MonoBehaviour
+{
+    public static Main Instance;
+
+    public Transform LoadingTr;
+
+
+    private void Awake()
+    {
+        Instance = this;
+
+        if (!LoadingTr.gameObject.activeSelf)
+            LoadingTr.gameObject.SetActive(true);
+
+        ResourceManager.Instance.Init();
+        AIManager.Instance.Init();
+        MarketManager.Instance.Init();
+
+    }
+
+    private void Start()
+    {
+        ChangeScene().Forget();
+    }
+
+    private async UniTask ChangeScene()
+    {
+        AsyncOperation async = SceneManager.LoadSceneAsync("Main");
+        async.allowSceneActivation = false;
+
+        float timer = 0f;
+        while (!async.isDone)
+        {
+            Debug.LogError(async.progress);
+            if (async.progress >= 0.9f)
+            {
+                timer += Time.unscaledDeltaTime;
+                Debug.Log(timer);
+                if (timer >= 1f)
+                {
+                    if (LoadingTr.gameObject.activeSelf)
+                        LoadingTr.gameObject.SetActive(false);
+
+                    async.allowSceneActivation = true;
+                }
+            }
+
+            await UniTask.Yield();
+        }
+    }
+    #region 보류
+    //private void OnClickStartBtn()
+    //{
+    //    ChangeScene().Forget();
+    //}
+
+    //private async UniTask ChangeScene()
+    //{
+    //    AsyncOperation async = SceneManager.LoadSceneAsync("Main");
+    //    async.allowSceneActivation = false;
+
+    //    float timer = 0f;
+    //    while (!async.isDone)
+    //    {
+    //        if (async.progress < 0.9f)
+    //        {
+    //            Loading.fillAmount = async.progress;
+    //        }
+    //        else
+    //        {
+    //            timer += Time.unscaledDeltaTime;
+    //            Loading.fillAmount = Mathf.Lerp(0.9f, 1f, timer);
+    //            if(Loading.fillAmount >=1f)
+    //            {
+    //                async.allowSceneActivation = true;
+    //                await UniTask.WaitForSeconds(1f);
+    //            }
+    //        }
+
+
+    //    }
+    //}
+
+    //public RectTransform Upbit;
+    //public float minScroll = 0;
+    //public float maxScroll = 420;
+    //public float scrollSpeed = 10f;
+    //private float currentScroll = 0f;
+
+    ////수정할거임 임시기능 
+    //public bool TMP = false;
+    //void Update()
+    //{
+    //    if(TMP)
+    //    {
+    //        // 현재 스크롤 값 가져오기
+    //        float input = Input.GetAxis("Mouse ScrollWheel");
+
+    //        currentScroll -= input * scrollSpeed;
+
+    //        // Clamp 적용 (스크롤 범위 제한)
+    //        currentScroll = Mathf.Clamp(currentScroll, minScroll, maxScroll);
+
+    //        // 콘텐츠 위치 설정
+    //        Upbit.anchoredPosition = new Vector2(Upbit.anchoredPosition.x, currentScroll);
+    //    }
+    //}
+    #endregion
+}
