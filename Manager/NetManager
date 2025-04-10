@@ -1,0 +1,26 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class NetManager : Singletone<NetManager>
+{
+    bool IsConnect = false;
+
+    public bool CheckConnectInternet()
+    {
+        if(Application.internetReachability == NetworkReachability.NotReachable)
+        {
+            IsConnect = false;
+        }
+        else if(Application.internetReachability == NetworkReachability.ReachableViaCarrierDataNetwork)
+        {
+            IsConnect = true;
+        }
+        else
+        {
+            IsConnect = true;
+        }
+
+        return IsConnect;
+    }
+}
